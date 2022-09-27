@@ -64,7 +64,7 @@ class ShareController extends Controller
             }
             $result['result'] = is_null($workspace)? 'ng': 'ok';
             if ($workspace) {
-                $result['workspace'] = $workspace->data;
+                $result['workspace'] = json_decode($workspace->data);
             }
             DB::commit();
         } catch (Exception $ex) {
