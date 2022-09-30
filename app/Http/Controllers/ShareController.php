@@ -56,6 +56,19 @@ class ShareController extends Controller
                         $result['error'] = 'not found workspace code:'. $workspace_code;
                     } else {
                         $data = json_decode($workspace->data);
+                        $count = 0;
+                        $test_user_code = $user_code;
+                        do {
+                            $exists_user = collect($data->members)->where('user_code', $test_user_code)->first();
+                            if ($exists_user) {
+                                $count++;
+                                $test_user_code = $user_code. $count;
+                            }
+                        } while (!is_null($exists_user));
+                        if ($count > 0) {
+                            $user->user_code = $test_user_code;
+                        }
+
                         $data->member = collect($data->member)->push($user);
                         $workspace->data = json_encode($data);
                         $workspace->save();
@@ -65,6 +78,7 @@ class ShareController extends Controller
             $result['result'] = is_null($workspace)? 'ng': 'ok';
             if ($workspace) {
                 $result['workspace'] = json_decode($workspace->data);
+                $result['user'] = $user;
             }
             DB::commit();
         } catch (Exception $ex) {
