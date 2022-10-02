@@ -26,7 +26,7 @@ Route::prefix('v')->name('v.')->group(function () {
             Route::post('/start', [ShareController::class, 'start'])->name('start');
             Route::post('/stop', [ShareController::class, 'stop'])->name('stop');
             Route::post('/push_event', [ShareController::class, 'push_event'])->name('push_event');
-            Route::post('/wait_event', [ShareController::class, 'wait_event'])->name('wait_event');
+            Route::post('/wait_events', [ShareController::class, 'wait_events'])->name('wait_events');
         });    
     });
 });

@@ -78,4 +78,5 @@ RUN echo 'set encoding=utf8' >> ~/.vimrc
 COPY docker/php-fpm/init.sh /init.sh
 
 EXPOSE 9000
-CMD [ "/init.sh" ]
+#CMD [ "/init.sh" ]
+CMD /usr/sbin/crond -l 1 -b && docker-php-entrypoint php-fpm

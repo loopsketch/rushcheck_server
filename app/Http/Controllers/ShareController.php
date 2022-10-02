@@ -59,7 +59,7 @@ class ShareController extends Controller
                         $count = 0;
                         $test_user_code = $user_code;
                         do {
-                            $exists_user = collect($data->members)->where('user_code', $test_user_code)->first();
+                            $exists_user = collect($data->member)->where('user_code', $test_user_code)->first();
                             if ($exists_user) {
                                 $count++;
                                 $test_user_code = $user_code. $count;
@@ -110,7 +110,7 @@ class ShareController extends Controller
                 $result['error'] = 'not found workspace code:'. $workspace_code;
             } else {
                 $data = json_decode($workspace->data);
-                $user = collect($data->members)->where('user_code', $user_code)->first();
+                $user = collect($data->member)->where('user_code', $user_code)->first();
                 if ($user) {
                     switch ($user->mode) {
                         case 0:
@@ -152,23 +152,23 @@ class ShareController extends Controller
         DB::beginTransaction();
         try {
             $workspace_code = $request->workspace_code;
-            $user_code = $request->user_code;
+            // $user_code = $request->user_code;
             $data = json_decode($request->data);
             $workspace = Workspace::where('code', $workspace_code)->first();
             if (is_null($workspace)) {
                 $result['error'] = 'not found workspace code:'. $workspace_code;
             } else {
-                $data = $workspace->data;
-                $user = collect($data->member)->where('user_code', $user_code)->first();
-                if ($user && $user->mode == 0) {
+                // $data = $workspace->data;
+                // $user = collect($data->member)->where('user_code', $user_code)->first();
+                // if ($user && $user->mode == 0) {
                     WorkspaceEvent::create([
                         'workspace_code' => $workspace_code,
                         'data' => json_encode($data),
                     ]);
                     $result['result'] = 'ok';
-                } else {
-                    $result['error'] = 'invalid user';
-                }
+                // } else {
+                //     $result['error'] = 'invalid user';
+                // }
             }
             DB::commit();
         } catch (Exception $ex) {
@@ -184,7 +184,7 @@ class ShareController extends Controller
     /**
      * 
      */
-    function wait_event(Request $request)
+    function wait_events(Request $request)
     {
         $result = [
             'result' => 'ng'
@@ -192,14 +192,14 @@ class ShareController extends Controller
 
         try {
             $workspace_code = $request->workspace_code;
-            $user_code = $request->user_code;
+            //$user_code = $request->user_code;
             $workspace = Workspace::where('code', $workspace_code)->first();
             if (is_null($workspace)) {
                 $result['error'] = 'not found workspace code:'. $workspace_code;
             } else {
-                $data = $workspace->data;
-                $user = collect($data->member)->where('user_code', $user_code)->first();
-                if ($user) {
+                $data = json_decode($workspace->data);
+                //$user = collect($data->member)->where('user_code', $user_code)->first();
+                //if ($user) {
                     $last_id = $request->last_id?? null;
                     $query = WorkspaceEvent::where('workspace_code', $workspace_code);
                     if (!is_null($last_id)) {
@@ -207,10 +207,16 @@ class ShareController extends Controller
                     }
                     $events = $query->orderBy('created_at')->get();
                     $result['result'] = 'ok';
-                    $result['events'] = $events;
-                } else {
-                    $result['error'] = 'invalid user';
-                }
+                    $result['events'] = $events->map(function($item) {
+                        $data = json_decode($item->data);
+                        $data->id = $item->id;
+                        $data->created_at = $item->created_at;
+                        return $data;
+                    });
+                    $result['workspace'] = $data;
+                // } else {
+                //     $result['error'] = 'invalid user';
+                // }
             }
         } catch (Exception $ex) {
             $result['error'] = $ex->getMessage();
