@@ -145,6 +145,7 @@ class ShareController extends Controller
      */
     function push_event(Request $request)
     {
+        Log::debug('push event');
         $result = [
             'result' => 'ng'
         ];
@@ -186,6 +187,7 @@ class ShareController extends Controller
      */
     function wait_events(Request $request)
     {
+        Log::debug('wait events');
         $result = [
             'result' => 'ng'
         ];
