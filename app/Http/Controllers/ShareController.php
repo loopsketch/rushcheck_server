@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Workspace;
 use App\Models\WorkspaceEvent;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -153,23 +154,16 @@ class ShareController extends Controller
         DB::beginTransaction();
         try {
             $workspace_code = $request->workspace_code;
-            // $user_code = $request->user_code;
             $data = json_decode($request->data);
             $workspace = Workspace::where('code', $workspace_code)->first();
             if (is_null($workspace)) {
                 $result['error'] = 'not found workspace code:'. $workspace_code;
             } else {
-                // $data = $workspace->data;
-                // $user = collect($data->member)->where('user_code', $user_code)->first();
-                // if ($user && $user->mode == 0) {
-                    WorkspaceEvent::create([
-                        'workspace_code' => $workspace_code,
-                        'data' => json_encode($data),
-                    ]);
-                    $result['result'] = 'ok';
-                // } else {
-                //     $result['error'] = 'invalid user';
-                // }
+                WorkspaceEvent::create([
+                    'workspace_code' => $workspace_code,
+                    'data' => json_encode($data),
+                ]);
+                $result['result'] = 'ok';
             }
             DB::commit();
         } catch (Exception $ex) {
@@ -194,31 +188,38 @@ class ShareController extends Controller
 
         try {
             $workspace_code = $request->workspace_code;
-            //$user_code = $request->user_code;
             $workspace = Workspace::where('code', $workspace_code)->first();
             if (is_null($workspace)) {
                 $result['error'] = 'not found workspace code:'. $workspace_code;
             } else {
                 $data = json_decode($workspace->data);
-                //$user = collect($data->member)->where('user_code', $user_code)->first();
-                //if ($user) {
-                    $last_id = $request->last_id?? null;
+                $last_id = $request->last_id?? null;
+
+                $result['result'] = 'ok';
+                $result['events'] = [];
+                $result['workspace'] = $data;
+
+                // long polling
+                Log::debug('start time '.Carbon::now());
+                $limit = Carbon::now()->addSeconds(30);
+                while (Carbon::now()->lte($limit)) {
                     $query = WorkspaceEvent::where('workspace_code', $workspace_code);
                     if (!is_null($last_id)) {
                         $query->where('id', '>', $last_id);
                     }
                     $events = $query->orderBy('created_at')->get();
-                    $result['result'] = 'ok';
-                    $result['events'] = $events->map(function($item) {
-                        $data = json_decode($item->data);
-                        $data->id = $item->id;
-                        $data->created_at = $item->created_at;
-                        return $data;
-                    });
-                    $result['workspace'] = $data;
-                // } else {
-                //     $result['error'] = 'invalid user';
-                // }
+                    if ($events->isNotEmpty()) {
+                        $result['events'] = $events->map(function($item) {
+                            $d = json_decode($item->data);
+                            $d->id = $item->id;
+                            $d->created_at = $item->created_at;
+                            return $d;
+                        });
+                        break;
+                    }
+                    usleep(10000); // 10ms
+                }
+                Log::debug('end time '.Carbon::now());
             }
         } catch (Exception $ex) {
             $result['error'] = $ex->getMessage();
