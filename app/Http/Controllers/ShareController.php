@@ -74,19 +74,20 @@ class ShareController extends Controller
                         $data->member = collect($data->member)->push($user);
                         $workspace->data = json_encode($data);
                         $workspace->save();
-
-                        // in guest user logout case, throw user_updated event
-                        $event = (object)[
-                            'navigator' => 'user_updated',
-                            'user' => $user_code,
-                        ];
-                        WorkspaceEvent::create([
-                            'workspace_code' => $workspace_code,
-                            'data' => json_encode($event),
-                        ]);
                     }
                     break;
             }
+
+            // in guest user logout case, throw user_updated event
+            $event = (object)[
+                'navigator' => 'user_updated',
+                'user' => $user_code,
+            ];
+            WorkspaceEvent::create([
+                'workspace_code' => $workspace_code,
+                'data' => json_encode($event),
+            ]);
+
             $result['result'] = is_null($workspace)? 'ng': 'ok';
             if ($workspace) {
                 $result['workspace'] = json_decode($workspace->data);
@@ -134,20 +135,20 @@ class ShareController extends Controller
                             $data->member = collect($data->member)->filter(fn($user) => $user->user_code != $user_code);
                             $workspace->data = json_encode($data);
                             $workspace->save();
-
-                            // in guest user logout case, throw user_updated event
-                            $event = (object)[
-                                'navigator' => 'user_updated',
-                                'user' => $user_code,
-                            ];
-                            WorkspaceEvent::create([
-                                'workspace_code' => $workspace_code,
-                                'data' => json_encode($event),
-                            ]);
                             Log::debug("remove member:{$user_code} in workspace:{$workspace_code}");
                             break;
                     }
                     $result['result'] = 'ok';
+
+                    // in guest user logout case, throw user_updated event
+                    $event = (object)[
+                        'navigator' => 'user_updated',
+                        'user' => $user_code,
+                    ];
+                    WorkspaceEvent::create([
+                        'workspace_code' => $workspace_code,
+                        'data' => json_encode($event),
+                    ]);
                 }
             }
             DB::commit();
