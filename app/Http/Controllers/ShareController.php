@@ -68,11 +68,22 @@ class ShareController extends Controller
                         } while (!is_null($exists_user));
                         if ($count > 0) {
                             $user->user_code = $test_user_code;
+                            $user_code = $test_user_code;
                         }
 
                         $data->member = collect($data->member)->push($user);
                         $workspace->data = json_encode($data);
                         $workspace->save();
+
+                        // in guest user logout case, throw user_updated event
+                        $event = (object)[
+                            'navigator' => 'user_updated',
+                            'user' => $user_code,
+                        ];
+                        WorkspaceEvent::create([
+                            'workspace_code' => $workspace_code,
+                            'data' => json_encode($event),
+                        ]);
                     }
                     break;
             }
@@ -123,6 +134,16 @@ class ShareController extends Controller
                             $data->member = collect($data->member)->filter(fn($user) => $user->user_code != $user_code);
                             $workspace->data = json_encode($data);
                             $workspace->save();
+
+                            // in guest user logout case, throw user_updated event
+                            $event = (object)[
+                                'navigator' => 'user_updated',
+                                'user' => $user_code,
+                            ];
+                            WorkspaceEvent::create([
+                                'workspace_code' => $workspace_code,
+                                'data' => json_encode($event),
+                            ]);
                             Log::debug("remove member:{$user_code} in workspace:{$workspace_code}");
                             break;
                     }
