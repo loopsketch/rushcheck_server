@@ -192,12 +192,10 @@ class ShareController extends Controller
             if (is_null($workspace)) {
                 $result['error'] = 'not found workspace code:'. $workspace_code;
             } else {
-                $data = json_decode($workspace->data);
                 $last_id = $request->last_id?? null;
 
                 $result['result'] = 'ok';
                 $result['events'] = [];
-                $result['workspace'] = $data;
 
                 // long polling
                 Log::debug('start time '.Carbon::now());
@@ -219,6 +217,11 @@ class ShareController extends Controller
                     }
                     usleep(10000); // 10ms
                 }
+
+                // refresh workspace data
+                $workspace->refresh();
+                $data = json_decode($workspace->data);
+                $result['workspace'] = $data;
                 Log::debug('end time '.Carbon::now());
             }
         } catch (Exception $ex) {
